@@ -3,7 +3,9 @@ FROM node:18-bookworm-slim AS global-deps-stage
 
 WORKDIR /app
 
-# Instala dependências do sistema (Incluindo GIT e FFmpeg sem versão travada)
+# --- CORREÇÃO AQUI ---
+# Adicionado 'git' na lista de instalação para resolver o erro 'spawn git'
+# Removida a versão fixa do 'ffmpeg' para evitar erro de pacote não encontrado
 RUN apt-get update \
   && apt-get install -y wget gnupg nano ffmpeg git \
   && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
@@ -14,7 +16,6 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && npm install pm2@latest -g
 
-# Variáveis de ambiente
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=dev
 ENV CHROME_BIN=google-chrome-stable
@@ -22,7 +23,7 @@ ENV CHROME_BIN=google-chrome-stable
 # Estágio 2: Instalação de pacotes Node
 FROM global-deps-stage AS develop-stage
 COPY package*.json ./
-# Agora o git existe, então o npm install vai funcionar
+# O 'git' instalado acima permitirá que este comando funcione agora
 RUN npm install
 
 # Estágio 3: Build
@@ -34,7 +35,6 @@ RUN npm run build
 FROM build-stage AS production-stage
 ENV NODE_ENV=production
 
-# Entrypoint
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
