@@ -1,13 +1,14 @@
 # Estágio 1: Dependências Globais
-FROM node:18-bookworm-slim AS global-deps-stage
+# Atualizado para Node 20 para compatibilidade com bibliotecas modernas
+FROM node:20-bookworm-slim AS global-deps-stage
 
 WORKDIR /app
 
-# --- CORREÇÃO AQUI ---
-# Adicionado 'git' na lista de instalação para resolver o erro 'spawn git'
-# Removida a versão fixa do 'ffmpeg' para evitar erro de pacote não encontrado
+# --- CORREÇÃO FINAL ---
+# Adicionado 'build-essential' e 'python3': Necessários para compilar o pacote 're2' e 'make'
+# Mantido 'git' e 'ffmpeg' das correções anteriores
 RUN apt-get update \
-  && apt-get install -y wget gnupg nano ffmpeg git \
+  && apt-get install -y wget gnupg nano ffmpeg git build-essential python3 \
   && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
   && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
   && apt-get update \
@@ -23,7 +24,8 @@ ENV CHROME_BIN=google-chrome-stable
 # Estágio 2: Instalação de pacotes Node
 FROM global-deps-stage AS develop-stage
 COPY package*.json ./
-# O 'git' instalado acima permitirá que este comando funcione agora
+
+# Instala as dependências (agora com ferramentas de compilação C++ disponíveis)
 RUN npm install
 
 # Estágio 3: Build
