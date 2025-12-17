@@ -1,12 +1,11 @@
-# Estágio 1: Dependências Globais (Chrome, FFmpeg, Node)
+# Estágio 1: Dependências Globais
 FROM node:18-bookworm-slim AS global-deps-stage
 
 WORKDIR /app
 
-# Instala dependências do sistema.
-# OBS: Removemos a versão fixa do ffmpeg para evitar erro 100.
+# Instala dependências do sistema (Incluindo GIT e FFmpeg sem versão travada)
 RUN apt-get update \
-  && apt-get install -y wget gnupg nano ffmpeg \
+  && apt-get install -y wget gnupg nano ffmpeg git \
   && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
   && sh -c 'echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list' \
   && apt-get update \
@@ -15,7 +14,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/* \
   && npm install pm2@latest -g
 
-# Variáveis de ambiente configuradas corretamente
+# Variáveis de ambiente
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV NODE_ENV=dev
 ENV CHROME_BIN=google-chrome-stable
@@ -23,18 +22,19 @@ ENV CHROME_BIN=google-chrome-stable
 # Estágio 2: Instalação de pacotes Node
 FROM global-deps-stage AS develop-stage
 COPY package*.json ./
+# Agora o git existe, então o npm install vai funcionar
 RUN npm install
 
-# Estágio 3: Build do código TypeScript/Javascript
+# Estágio 3: Build
 FROM develop-stage AS build-stage
 COPY . .
 RUN npm run build
 
-# Estágio 4: Produção (Final)
+# Estágio 4: Produção
 FROM build-stage AS production-stage
 ENV NODE_ENV=production
 
-# Garante que o script de entrada existe e tem permissão de execução
+# Entrypoint
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
