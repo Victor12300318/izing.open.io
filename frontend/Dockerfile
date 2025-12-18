@@ -1,4 +1,4 @@
-# Estágio 1: Build da Aplicação
+# Estágio 1: Build
 FROM node:20-bookworm-slim AS build-stage
 
 WORKDIR /app
@@ -11,16 +11,16 @@ RUN npm install
 
 COPY . .
 
-# --- AQUI ESTÁ A CORREÇÃO ---
-# Coloque a URL DO SEU BACKEND aqui (sem a barra / no final)
-# Estou definindo as duas variáveis mais comuns usadas nesses forks do Izing
-ENV BACKEND_URL="https://crm-izing.xjbony.easypanel.host"
+# --- AQUI ESTÁ A CORREÇÃO BLINDADA ---
+# Definimos as 3 variações mais comuns de nome de variável para garantir
 ENV URL_API="https://crm-izing.xjbony.easypanel.host"
+ENV VUE_URL_API="https://crm-izing.xjbony.easypanel.host"
+ENV BACKEND_URL="https://crm-izing.xjbony.easypanel.host"
 
 # Executa o build
 RUN npx quasar build -m pwa
 
-# Estágio 2: Servidor de Produção
+# Estágio 2: Produção
 FROM node:20-bookworm-slim AS production-stage
 WORKDIR /app
 RUN npm install -g serve
