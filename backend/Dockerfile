@@ -21,10 +21,12 @@ ENV CHROME_BIN=/usr/bin/chromium
 FROM base-stage AS develop-stage
 COPY package*.json ./
 
-# Previne o erro "exit code: 128" do Git/Husky durante a instalação
-RUN git init \
-    && git config --global url."https://github.com/".insteadOf git://github.com/ \
-    && git config --global url."https://github.com/".insteadOf ssh://git@github.com/ \
+# CORREÇÃO DO ERRO 128: 
+# 1. Apaga o lockfile antigo.
+# 2. Troca o fork do Github deletado pela versão oficial (1.34.1) no package.json
+RUN rm -f package-lock.json \
+    && sed -i -E 's/"whatsapp-web.js": "github:+"/"whatsapp-web.js": "^1.34.1"/g' package.json \
+    && npm config set fetch-retry-maxtimeout 600000 \
     && HUSKY=0 npm install --include=dev
 
 # Estágio 3: Build
@@ -39,5 +41,5 @@ ENV NODE_ENV=production
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
-# Entrypoint no formato JSON correto (Isso remove o Warning da linha 38)
+# Entrypoint corrigido corretamente
 ENTRYPOINT
