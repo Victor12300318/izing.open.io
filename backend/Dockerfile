@@ -17,26 +17,26 @@ RUN ln -sf /usr/bin/python3 /usr/bin/python
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV CHROME_BIN=google-chrome-stable
 
-# Estágio 2: Instalação (Instalamos TUDO para poder buildar)
-FROM base-stage AS build-stage
+# Estágio 2: Instalação (Aqui instalamos TUDO, incluindo devDeps)
+FROM global-deps-stage AS develop-stage
 COPY package*.json ./
 
-# IMPORTANTE: Instalamos todas as dependências primeiro
-RUN npm install
+# Forçamos a instalação de todas as dependências para o build funcionar
+RUN npm install --include=dev
 
-# Copia o código e executa o build
+# Estágio 3: Build
+FROM develop-stage AS build-stage
 COPY . .
+# O comando abaixo agora terá acesso ao typescript/compiladores
 RUN npm run build
 
-# Estágio 3: Produção (Limpamos as devDeps para o container final ficar leve)
+# Estágio 4: Produção (Container final limpo)
 FROM build-stage AS production-stage
-# Aqui sim definimos como produção
+# Só aqui definimos como production para o runtime
 ENV NODE_ENV=production
-
-# Opcional: Remover dependências de desenvolvimento após o build
-# RUN npm prune --production
 
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
 ENTRYPOINT ["./docker-entrypoint.sh"]
