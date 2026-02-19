@@ -3,22 +3,23 @@ FROM node:20-bookworm-slim AS base-stage
 
 WORKDIR /app
 
-# Instalação de dependências do sistema e Chrome
+# Instalação de dependências do sistema e Chromium (Substituído google-chrome-stable)
 RUN apt-get update && apt-get install -y \
-    wget gnupg nano ffmpeg git build-essential python3 \
-    google-chrome-stable fonts-ipafont-gothic fonts-wqy-zenhei \
-    fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
-    --no-install-recommends \
-    && rm -rf /var/lib/apt/lists/* \
-    && npm install pm2@latest -g
+ wget gnupg nano ffmpeg git build-essential python3 \
+ chromium fonts-ipafont-gothic fonts-wqy-zenhei \
+ fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
+ --no-install-recommends \
+ && rm -rf /var/lib/apt/lists/* \
+ && npm install pm2@latest -g
 
 # Links e Variáveis de Ambiente
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV CHROME_BIN=google-chrome-stable
+# Atualizado para o caminho do Chromium
+ENV CHROME_BIN=/usr/bin/chromium 
 
-# Estágio 2: Instalação (Aqui instalamos TUDO, incluindo devDeps)
-FROM global-deps-stage AS develop-stage
+# Estágio 2: Instalação (Corrigido de global-deps-stage para base-stage)
+FROM base-stage AS develop-stage
 COPY package*.json ./
 
 # Forçamos a instalação de todas as dependências para o build funcionar
@@ -38,5 +39,5 @@ ENV NODE_ENV=production
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
-ENTRYPOINT ["./docker-entrypoint.sh"]
+# Removida a duplicata do ENTRYPOINT
+ENTRYPOINT
