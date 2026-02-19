@@ -144,6 +144,11 @@ class Whatsapp extends Model<Whatsapp> {
   @Default(null)
   @AllowNull
   @Column(DataType.TEXT)
+  gupshupAppName: string;
+
+  @Default(null)
+  @AllowNull
+  @Column(DataType.TEXT)
   tokenAPI: string;
 
   @Default(null)

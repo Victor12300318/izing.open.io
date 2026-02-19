@@ -28,6 +28,7 @@ const ShowWhatsAppService = async ({
     "phone",
     "tenantId",
     "wabaBSP",
+    "gupshupAppName",
     "tokenAPI",
     "fbPageId",
     "farewellMessage",

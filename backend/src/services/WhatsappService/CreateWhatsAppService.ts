@@ -12,6 +12,7 @@ interface Request {
   instagramUser?: string;
   instagramKey?: string;
   wabaBSP?: string;
+  gupshupAppName?: string;
   tokenAPI?: string;
   fbPageId?: string;
   farewellMessage?: string;
@@ -33,6 +34,7 @@ const CreateWhatsAppService = async ({
   instagramKey,
   type,
   wabaBSP,
+  gupshupAppName,
   tokenAPI,
   fbPageId,
   farewellMessage,
@@ -41,6 +43,10 @@ const CreateWhatsAppService = async ({
 }: Request): Promise<Response> => {
   if (type === "waba" && (!tokenAPI || !wabaBSP)) {
     throw new AppError("WABA: favor informar o Token e a BSP");
+  }
+
+  if (type === "waba" && wabaBSP === "gupshup" && (!tokenAPI || !gupshupAppName)) {
+    throw new AppError("Gupshup: favor informar o Token API e o Nome do App");
   }
 
   if (type === "instagram" && !instagramUser) {
@@ -78,6 +84,7 @@ const CreateWhatsAppService = async ({
       instagramKey,
       type,
       wabaBSP,
+      gupshupAppName,
       tokenAPI,
       fbPageId,
       farewellMessage,

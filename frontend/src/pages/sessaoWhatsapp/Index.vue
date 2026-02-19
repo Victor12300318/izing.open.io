@@ -39,7 +39,10 @@
             <q-item-section>
               <q-item-label class="text-h6 text-bold">Nome: {{ item.name }}</q-item-label>
               <q-item-label class="text-h6 text-caption">
-                {{ item.type }}
+                {{ getChannelTypeLabel(item) }}
+              </q-item-label>
+              <q-item-label v-if="item.wabaBSP" class="text-caption text-positive">
+                BSP: {{ item.wabaBSP === 'gupshup' ? 'Gupshup' : item.wabaBSP }}
               </q-item-label>
             </q-item-section>
             <q-item-section side>
@@ -112,26 +115,36 @@
                 :disable="!isAdmin"
               />
 
-              <div
-                v-if="item.status == 'DISCONNECTED'"
-                class="q-gutter-sm"
-              >
-                <q-btn
-                  rounded
-                  color="positive"
-                  label="Conectar"
-                  @click="handleStartWhatsAppSession(item.id)"
-                />
-                <q-btn
-                  rounded
-                  v-if="item.status == 'DISCONNECTED' && item.type == 'whatsapp'"
-                  color="blue-5"
-                  label="Novo QR Code"
-                  @click="handleRequestNewQrCode(item, 'btn-qrCode')"
-                  icon-right="watch_later"
-                  :disable="!isAdmin"
-                />
-              </div>
+               <div
+                 v-if="item.status == 'DISCONNECTED'"
+                 class="q-gutter-sm"
+               >
+                 <q-btn
+                   rounded
+                   color="positive"
+                   label="Conectar"
+                   @click="handleStartWhatsAppSession(item.id)"
+                   v-if="item.type !== 'waba'"
+                 />
+                 <q-btn
+                   rounded
+                   v-if="item.status == 'DISCONNECTED' && item.type == 'whatsapp'"
+                   color="blue-5"
+                   label="Novo QR Code"
+                   @click="handleRequestNewQrCode(item, 'btn-qrCode')"
+                   icon-right="watch_later"
+                   :disable="!isAdmin"
+                 />
+                 <q-btn
+                   rounded
+                   v-if="item.type === 'waba' && item.wabaBSP === 'gupshup'"
+                   color="blue-5"
+                   label="Configurar Webhook"
+                   @click="copyWebhookUrl(item)"
+                   icon="mdi-webhook"
+                   :disable="!isAdmin"
+                 />
+               </div>
 
               <div
                 v-if="item.status == 'OPENING'"
@@ -207,6 +220,7 @@ import { mapGetters } from 'vuex'
 import ModalWhatsapp from './ModalWhatsapp'
 import ItemStatusChannel from './ItemStatusChannel'
 import { ListarChatFlow } from 'src/service/chatFlow'
+import { copyToClipboard } from 'quasar'
 
 const userLogado = JSON.parse(localStorage.getItem('usuario'))
 
@@ -296,6 +310,53 @@ export default {
     }
   },
   methods: {
+    getChannelTypeLabel (item) {
+      const labels = {
+        whatsapp: 'WhatsApp',
+        telegram: 'Telegram',
+        hub: 'Hub Notificame',
+        hub_facebook: 'Facebook (Hub)',
+        hub_instagram: 'Instagram (Hub)',
+        messenger: 'Messenger',
+        waba: 'WABA (API Oficial)'
+      }
+      
+      // Se for WABA, verificar o BSP
+      if (item.type === 'waba' && item.wabaBSP) {
+        return `WABA ${item.wabaBSP === 'gupshup' ? 'Gupshup' : item.wabaBSP}`
+      }
+      
+      return labels[item.type] || item.type
+    },
+    async copyWebhookUrl (item) {
+      if (!item.tokenHook) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Token webhook não encontrado',
+          position: 'top'
+        })
+        return
+      }
+      
+      const baseUrl = process.env.BACKEND_URL || window.location.origin
+      const webhookUrl = `${baseUrl}/wabahooks/gupshup/${item.tokenHook}`
+      
+      try {
+        await copyToClipboard(webhookUrl)
+        this.$q.notify({
+          type: 'positive',
+          message: 'URL do webhook copiada! Configure no painel Gupshup.',
+          position: 'top',
+          timeout: 3000
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'negative',
+          message: 'Erro ao copiar URL',
+          position: 'top'
+        })
+      }
+    },
     formatarData (data, formato) {
       return format(parseISO(data), formato, { locale: pt })
     },

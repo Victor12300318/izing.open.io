@@ -15,6 +15,7 @@ interface WhatsappData {
   isActive?: boolean;
   type?: "waba" | "instagram" | "telegram" | "whatsapp" | "messenger";
   wabaBSP?: string;
+  gupshupAppName?: string;
   tokenAPI?: string;
   fbPageId?: string;
   farewellMessage?: string;
@@ -55,6 +56,7 @@ const UpdateWhatsAppService = async ({
     isActive,
     type,
     wabaBSP,
+    gupshupAppName,
     tokenAPI,
     fbPageId,
     farewellMessage,
@@ -95,6 +97,7 @@ const UpdateWhatsAppService = async ({
       isActive,
       type,
       wabaBSP,
+      gupshupAppName,
       tokenAPI,
       fbPageId,
       farewellMessage,

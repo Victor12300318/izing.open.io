@@ -233,6 +233,106 @@
             </div>
           </div>
         </div>
+
+        <!-- Campos para WABA Gupshup -->
+        <div
+          class="q-mt-md row full-width justify-center"
+          v-if="whatsapp.type === 'waba'"
+        >
+          <div class="col">
+            <fieldset class="full-width q-pa-md rounded-all">
+              <legend>Configuração Gupshup (API Oficial WhatsApp)</legend>
+              
+              <!-- Seleção do BSP -->
+              <div class="col-12 q-mb-md">
+                <q-select
+                  outlined
+                  dense
+                  v-model="whatsapp.wabaBSP"
+                  :options="optionsWabaBSP"
+                  label="Provedor BSP"
+                  emit-value
+                  map-options
+                  @input="onBspChange"
+                />
+              </div>
+
+              <!-- Campos Gupshup -->
+              <template v-if="whatsapp.wabaBSP === 'gupshup'">
+                <div class="col-12 q-mb-md">
+                  <c-input
+                    outlined
+                    dense
+                    label="Número do WhatsApp Business *"
+                    v-model="whatsapp.number"
+                    hint="Código do país + DDD + Número (ex: 5511999999999)"
+                    :validator="$v.whatsapp.number"
+                    @blur="$v.whatsapp.number.$touch"
+                  />
+                </div>
+                <div class="col-12 q-mb-md">
+                  <c-input
+                    outlined
+                    dense
+                    label="API Key *"
+                    v-model="whatsapp.tokenAPI"
+                    hint="Obtenha no Dashboard Gupshup > API Keys"
+                    :validator="$v.whatsapp.tokenAPI"
+                    @blur="$v.whatsapp.tokenAPI.$touch"
+                  />
+                </div>
+                <div class="col-12 q-mb-md">
+                  <c-input
+                    outlined
+                    dense
+                    label="Nome do App *"
+                    v-model="whatsapp.gupshupAppName"
+                    hint="Nome do aplicativo configurado no Gupshup"
+                    :validator="$v.whatsapp.gupshupAppName"
+                    @blur="$v.whatsapp.gupshupAppName.$touch"
+                  />
+                </div>
+
+                <!-- Webhook URL Info -->
+                <div class="col-12 q-mt-md" v-if="whatsapp.id">
+                  <q-banner class="bg-blue-1 text-blue-10">
+                    <template v-slot:avatar>
+                      <q-icon name="mdi-webhook" color="blue" />
+                    </template>
+                    <div class="text-body2">
+                      <strong>Webhook URL:</strong><br>
+                      <code class="text-caption">{{ getWebhookUrl() }}</code>
+                    </div>
+                    <template v-slot:action>
+                      <q-btn 
+                        flat 
+                        color="blue" 
+                        icon="mdi-content-copy" 
+                        label="Copiar"
+                        @click="copyWebhookUrl"
+                      />
+                    </template>
+                  </q-banner>
+                  <div class="text-caption text-grey-7 q-mt-sm">
+                    Configure esta URL no painel Gupshup: Integration > Webhooks
+                  </div>
+                </div>
+
+                <!-- Test Connection -->
+                <div class="col-12 q-mt-md">
+                  <q-btn
+                    color="primary"
+                    icon="mdi-connection"
+                    label="Testar Conexão"
+                    @click="testGupshupConnection"
+                    :loading="testingConnection"
+                    :disable="!isGupshupValid"
+                  />
+                </div>
+              </template>
+            </fieldset>
+          </div>
+        </div>
       </q-card-section>
       <q-card-actions
         align="center"
@@ -288,6 +388,7 @@ export default {
       selectedHubOption: null,
       isPwd: true,
       isEdit: false,
+      testingConnection: false,
       whatsapp: {
         name: '',
         isDefault: false,
@@ -295,14 +396,22 @@ export default {
         instagramUser: '',
         instagramKey: '',
         tokenAPI: '',
+        gupshupAppName: '',
+        wabaBSP: 'gupshup',
+        number: '',
         type: 'whatsapp',
         farewellMessage: ''
       },
       optionsWhatsappsTypes: [
         { label: 'Whatsapp', value: 'whatsapp' },
         { label: 'Telegram', value: 'telegram' },
-        { label: 'Hub Notificame', value: 'hub' }
+        { label: 'Hub Notificame', value: 'hub' },
+        { label: 'WABA Gupshup', value: 'waba' }
         // { label: 'Instagram', value: 'instagram' }
+      ],
+      optionsWabaBSP: [
+        { label: 'Gupshup', value: 'gupshup' },
+        { label: '360 Dialog', value: '360' }
       ],
       variaveis: [
         { label: 'Nome', value: '{{name}}' },
@@ -311,15 +420,33 @@ export default {
       ]
     }
   },
-  validations: {
-    whatsapp: {
-      name: { required, minLength: minLength(3), maxLength: maxLength(50) },
-      isDefault: {}
+  validations () {
+    const validations = {
+      whatsapp: {
+        name: { required, minLength: minLength(3), maxLength: maxLength(50) },
+        isDefault: {}
+      }
     }
+
+    // Validações específicas para Gupshup
+    if (this.whatsapp.type === 'waba' && this.whatsapp.wabaBSP === 'gupshup') {
+      validations.whatsapp.number = { required }
+      validations.whatsapp.tokenAPI = { required }
+      validations.whatsapp.gupshupAppName = { required }
+    }
+
+    return validations
   },
   computed: {
     cBaseUrlIntegração () {
       return this.whatsapp.UrlMessengerWebHook
+    },
+    isGupshupValid () {
+      return this.whatsapp.type === 'waba' && 
+             this.whatsapp.wabaBSP === 'gupshup' &&
+             this.whatsapp.tokenAPI && 
+             this.whatsapp.gupshupAppName &&
+             this.whatsapp.number
     }
   },
   watch: {
@@ -330,6 +457,80 @@ export default {
     }
   },
   methods: {
+    onBspChange (value) {
+      this.whatsapp.wabaBSP = value
+      // Limpar campos específicos ao trocar de BSP
+      if (value === 'gupshup') {
+        this.whatsapp.tokenAPI = ''
+        this.whatsapp.gupshupAppName = ''
+        this.whatsapp.number = ''
+      }
+    },
+    getWebhookUrl () {
+      if (!this.whatsapp.id) return ''
+      const baseUrl = process.env.BACKEND_URL || window.location.origin
+      return `${baseUrl}/wabahooks/gupshup/${this.whatsapp.tokenHook}`
+    },
+    async copyWebhookUrl () {
+      const url = this.getWebhookUrl()
+      if (!url) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Salve a conexão primeiro para obter a URL do webhook',
+          position: 'top'
+        })
+        return
+      }
+      try {
+        await copyToClipboard(url)
+        this.$q.notify({
+          type: 'positive',
+          message: 'URL do webhook copiada!',
+          position: 'top'
+        })
+      } catch (error) {
+        this.$q.notify({
+          type: 'negative',
+          message: 'Erro ao copiar URL',
+          position: 'top'
+        })
+      }
+    },
+    async testGupshupConnection () {
+      if (!this.isGupshupValid) {
+        this.$q.notify({
+          type: 'warning',
+          message: 'Preencha todos os campos obrigatórios primeiro',
+          position: 'top'
+        })
+        return
+      }
+
+      this.testingConnection = true
+      try {
+        const { TestarConexaoGupshup } = await import('src/service/gupshup')
+        await TestarConexaoGupshup({
+          tokenAPI: this.whatsapp.tokenAPI,
+          gupshupAppName: this.whatsapp.gupshupAppName
+        })
+        this.$q.notify({
+          type: 'positive',
+          message: 'Conexão com Gupshup testada com sucesso!',
+          position: 'top',
+          timeout: 3000
+        })
+      } catch (error) {
+        console.error('Erro ao testar conexão:', error)
+        this.$q.notify({
+          type: 'negative',
+          message: error.response?.data?.message || 'Falha ao testar conexão com Gupshup',
+          position: 'top',
+          timeout: 5000
+        })
+      } finally {
+        this.testingConnection = false
+      }
+    },
     async listarHubOptions () {
       try {
         const response = await ListarHub()
@@ -395,8 +596,19 @@ export default {
     fecharModal () {
       this.whatsapp = {
         name: '',
-        isDefault: false
+        isDefault: false,
+        tokenTelegram: '',
+        instagramUser: '',
+        instagramKey: '',
+        tokenAPI: '',
+        gupshupAppName: '',
+        wabaBSP: 'gupshup',
+        number: '',
+        type: 'whatsapp',
+        farewellMessage: ''
       }
+      this.selectedHubOption = null
+      this.isEdit = false
       this.$emit('update:whatsAppEdit', {})
       this.$emit('update:modalWhatsapp', false)
     },
@@ -407,6 +619,65 @@ export default {
     },
     async handleSaveWhatsApp (whatsapp) {
       this.$v.whatsapp.$touch()
+      
+      // Validação para WABA Gupshup
+      if (whatsapp.type === 'waba' && whatsapp.wabaBSP === 'gupshup') {
+        if (this.$v.whatsapp.$error) {
+          return this.$q.notify({
+            type: 'warning',
+            progress: true,
+            position: 'top',
+            message: 'Ops! Verifique os erros nos campos do Gupshup...',
+            actions: [{
+              icon: 'close',
+              round: true,
+              color: 'white'
+            }]
+          })
+        }
+        
+        try {
+          const data = {
+            ...whatsapp,
+            status: 'CONNECTED'
+          }
+          
+          if (this.whatsAppEdit.id) {
+            await UpdateWhatsapp(this.whatsAppEdit.id, data)
+          } else {
+            await CriarWhatsapp(data)
+          }
+          
+          this.$q.notify({
+            type: 'positive',
+            progress: true,
+            position: 'top',
+            message: `WABA Gupshup ${this.whatsAppEdit.id ? 'editado' : 'criado'} com sucesso!`,
+            actions: [{
+              icon: 'close',
+              round: true,
+              color: 'white'
+            }]
+          })
+          this.$emit('recarregar-lista')
+          this.fecharModal()
+        } catch (error) {
+          console.error(error)
+          return this.$q.notify({
+            type: 'negative',
+            progress: true,
+            position: 'top',
+            message: error.response?.data?.message || 'Erro ao salvar conexão Gupshup',
+            actions: [{
+              icon: 'close',
+              round: true,
+              color: 'white'
+            }]
+          })
+        }
+        return
+      }
+      
       if (whatsapp.type !== 'hub') {
         if (this.$v.whatsapp.$error) {
           return this.$q.notify({
