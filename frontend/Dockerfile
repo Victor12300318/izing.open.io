@@ -13,9 +13,9 @@ COPY . .
 
 # --- AQUI ESTÁ A CORREÇÃO BLINDADA ---
 # Definimos as 3 variações mais comuns de nome de variável para garantir
-ENV URL_API="https://crm-izing.xjbony.easypanel.host"
-ENV VUE_URL_API="https://crm-izing.xjbony.easypanel.host"
-ENV BACKEND_URL="https://crm-izing.xjbony.easypanel.host"
+ENV URL_API="https://crm-izing-back.xjbony.easypanel.host"
+ENV VUE_URL_API="https://crm-izing-back.xjbony.easypanel.host"
+ENV BACKEND_URL="https://crm-izing-back.xjbony.easypanel.host"
 
 # Executa o build
 RUN npx quasar build -m pwa
