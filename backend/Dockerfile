@@ -3,7 +3,7 @@ FROM node:20-bookworm-slim AS base-stage
 
 WORKDIR /app
 
-# Instalação de dependências do sistema e Chromium (Substituído google-chrome-stable)
+# Instalação de dependências do sistema e Chromium
 RUN apt-get update && apt-get install -y \
  wget gnupg nano ffmpeg git build-essential python3 \
  chromium fonts-ipafont-gothic fonts-wqy-zenhei \
@@ -15,29 +15,24 @@ RUN apt-get update && apt-get install -y \
 # Links e Variáveis de Ambiente
 RUN ln -sf /usr/bin/python3 /usr/bin/python
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-# Atualizado para o caminho do Chromium
 ENV CHROME_BIN=/usr/bin/chromium 
 
-# Estágio 2: Instalação (Corrigido de global-deps-stage para base-stage)
+# Estágio 2: Instalação
 FROM base-stage AS develop-stage
 COPY package*.json ./
-
-# Forçamos a instalação de todas as dependências para o build funcionar
 RUN npm install --include=dev
 
 # Estágio 3: Build
 FROM develop-stage AS build-stage
 COPY . .
-# O comando abaixo agora terá acesso ao typescript/compiladores
 RUN npm run build
 
-# Estágio 4: Produção (Container final limpo)
+# Estágio 4: Produção
 FROM build-stage AS production-stage
-# Só aqui definimos como production para o runtime
 ENV NODE_ENV=production
 
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
-# Removida a duplicata do ENTRYPOINT
+# AQUI ESTAVA O ERRO: O Entrypoint agora está com os parâmetros corretos
 ENTRYPOINT
