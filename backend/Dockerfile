@@ -20,7 +20,12 @@ ENV CHROME_BIN=/usr/bin/chromium
 # Estágio 2: Instalação
 FROM base-stage AS develop-stage
 COPY package*.json ./
-RUN npm install --include=dev
+
+# Previne o erro "exit code: 128" do Git/Husky durante a instalação
+RUN git init \
+    && git config --global url."https://github.com/".insteadOf git://github.com/ \
+    && git config --global url."https://github.com/".insteadOf ssh://git@github.com/ \
+    && HUSKY=0 npm install --include=dev
 
 # Estágio 3: Build
 FROM develop-stage AS build-stage
@@ -34,5 +39,5 @@ ENV NODE_ENV=production
 COPY docker-entrypoint.sh .
 RUN chmod +x docker-entrypoint.sh
 
-# AQUI ESTAVA O ERRO: O Entrypoint agora está com os parâmetros corretos
+# Entrypoint no formato JSON correto (Isso remove o Warning da linha 38)
 ENTRYPOINT
